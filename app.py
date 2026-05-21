@@ -101,20 +101,23 @@ def save():
     public_id   = f"fislerim/fis_{tarih_safe}_{magaza_safe}_{ts}"
 
     try:
-        upload  = cloudinary.uploader.upload(
+        upload   = cloudinary.uploader.upload(
             "data:image/jpeg;base64," + img_b64,
             public_id = public_id,
         )
         foto_url = upload["secure_url"]
     except Exception as e:
-        return jsonify({"error": f"Cloudinary hatası: {e}"}), 500
+        foto_url     = ""
+        cloudinary_err = str(e)
+    else:
+        cloudinary_err = ""
 
     # 2. Apps Script'e gönder → Sheets'e yazar
     if not APPS_SCRIPT_URL:
         return jsonify({"error": "APPS_SCRIPT_URL tanımlı değil"}), 500
 
     try:
-        resp = requests.post(
+        requests.post(
             APPS_SCRIPT_URL,
             json={
                 "token"   : APPS_SCRIPT_TOKEN,
@@ -130,6 +133,9 @@ def save():
         )
     except Exception as e:
         return jsonify({"error": f"Sheets hatası: {e}"}), 500
+
+    if cloudinary_err:
+        return jsonify({"success": True, "link": "", "uyari": f"Fotoğraf yüklenemedi: {cloudinary_err}"})
 
     return jsonify({"success": True, "link": foto_url})
 

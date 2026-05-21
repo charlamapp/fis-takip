@@ -107,27 +107,29 @@ def save():
         )
         foto_url = upload["secure_url"]
     except Exception as e:
-        foto_url = ""
+        return jsonify({"error": f"Cloudinary hatası: {e}"}), 500
 
     # 2. Apps Script'e gönder → Sheets'e yazar
-    if APPS_SCRIPT_URL:
-        try:
-            requests.post(
-                APPS_SCRIPT_URL,
-                json={
-                    "token"   : APPS_SCRIPT_TOKEN,
-                    "tarih"   : receipt.get("tarih", ""),
-                    "magaza"  : receipt.get("magaza", ""),
-                    "toplam"  : receipt.get("toplam", ""),
-                    "kategori": receipt.get("kategori", ""),
-                    "notlar"  : receipt.get("notlar", ""),
-                    "foto"    : foto_url,
-                    "eklenme" : datetime.now().strftime("%d.%m.%Y %H:%M"),
-                },
-                timeout=10,
-            )
-        except Exception:
-            pass
+    if not APPS_SCRIPT_URL:
+        return jsonify({"error": "APPS_SCRIPT_URL tanımlı değil"}), 500
+
+    try:
+        resp = requests.post(
+            APPS_SCRIPT_URL,
+            json={
+                "token"   : APPS_SCRIPT_TOKEN,
+                "tarih"   : receipt.get("tarih", ""),
+                "magaza"  : receipt.get("magaza", ""),
+                "toplam"  : receipt.get("toplam", ""),
+                "kategori": receipt.get("kategori", ""),
+                "notlar"  : receipt.get("notlar", ""),
+                "foto"    : foto_url,
+                "eklenme" : datetime.now().strftime("%d.%m.%Y %H:%M"),
+            },
+            timeout=10,
+        )
+    except Exception as e:
+        return jsonify({"error": f"Sheets hatası: {e}"}), 500
 
     return jsonify({"success": True, "link": foto_url})
 

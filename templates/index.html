@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Fis Takip</title>
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-dark: #1d4ed8;
+      --blue-light: #eff6ff;
+      --green: #16a34a;
+      --red: #dc2626;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --soft: #64748b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+
+    header {
+      background: var(--blue);
+      color: #fff;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    }
+    header .logo { font-size: 22px; }
+    header h1 { font-size: 17px; font-weight: 700; }
+    header small { font-size: 11px; opacity: .75; display: block; margin-top: 1px; }
+
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 2px solid var(--border);
+      position: sticky;
+      top: 54px;
+      z-index: 99;
+    }
+    .tab {
+      flex: 1;
+      padding: 13px 8px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--soft);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: all .2s;
+      user-select: none;
+    }
+    .tab.active { color: var(--blue); border-bottom-color: var(--blue); }
+
+    .section { display: none; padding: 16px; max-width: 520px; margin: 0 auto; }
+    .section.active { display: block; }
+
+    /* ── Capture area ── */
+    #capture-area {
+      background: var(--card);
+      border: 2.5px dashed var(--border);
+      border-radius: 18px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+    #capture-area:active { background: var(--blue-light); border-color: var(--blue); transform: scale(.98); }
+    #capture-area .icon { font-size: 52px; }
+    #capture-area .title { font-size: 16px; font-weight: 700; color: var(--blue); }
+    #capture-area .hint { font-size: 13px; color: var(--soft); }
+    #file-input { display: none; }
+
+    #preview-img {
+      width: 100%;
+      max-height: 280px;
+      object-fit: contain;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      display: none;
+      box-shadow: 0 2px 12px rgba(0,0,0,.1);
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      padding: 32px;
+      background: var(--card);
+      border-radius: 16px;
+      margin-bottom: 14px;
+    }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin .75s linear infinite;
+      margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading p { color: var(--soft); font-size: 14px; font-weight: 600; }
+
+    /* ── Form ── */
+    #receipt-form {
+      display: none;
+      background: var(--card);
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+    #receipt-form h3 { font-size: 15px; font-weight: 700; margin-bottom: 14px; color: var(--soft); letter-spacing: .3px; }
+
+    .form-group { margin-bottom: 13px; }
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--soft);
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: .6px;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fff;
+      color: var(--text);
+      transition: border .15s;
+      -webkit-appearance: none;
+    }
+    .form-group input:focus,
+    .form-group select:focus { outline: none; border-color: var(--blue); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .btn-save {
+      width: 100%;
+      padding: 15px;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 4px;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn-save:active { transform: scale(.98); }
+    .btn-save:disabled { opacity: .45; cursor: not-allowed; }
+
+    .btn-reset {
+      width: 100%;
+      padding: 11px;
+      background: transparent;
+      color: var(--soft);
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+
+    /* ── Expenses ── */
+    .total-card {
+      background: linear-gradient(130deg, var(--blue) 0%, #1e40af 100%);
+      color: #fff;
+      border-radius: 18px;
+      padding: 22px 20px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 16px rgba(37,99,235,.3);
+    }
+    .total-card .label { font-size: 13px; opacity: .8; }
+    .total-card .amount { font-size: 36px; font-weight: 800; margin: 4px 0; }
+    .total-card .count { font-size: 12px; opacity: .65; }
+
+    .list-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .list-header h3 { font-size: 14px; font-weight: 700; color: var(--soft); }
+    .btn-refresh {
+      background: var(--card);
+      border: 2px solid var(--border);
+      color: var(--soft);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .expense-list { display: flex; flex-direction: column; gap: 10px; }
+
+    .expense-item {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      cursor: pointer;
+      transition: transform .15s;
+    }
+    .expense-item:active { transform: scale(.98); }
+
+    .cat-icon {
+      width: 44px; height: 44px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .expense-info { flex: 1; min-width: 0; }
+    .expense-info .store { font-weight: 700; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .expense-info .meta { font-size: 12px; color: var(--soft); margin-top: 2px; }
+    .expense-amount { font-weight: 800; font-size: 16px; flex-shrink: 0; }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: var(--soft); }
+    .empty-state .icon { font-size: 52px; margin-bottom: 12px; }
+    .empty-state p { font-size: 15px; }
+
+    /* ── Photo modal ── */
+    #photo-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.85);
+      z-index: 999;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    #photo-modal.open { display: flex; }
+    #photo-modal img {
+      max-width: 100%;
+      max-height: 90vh;
+      border-radius: 12px;
+      object-fit: contain;
+    }
+    #photo-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px; height: 36px;
+      background: rgba(255,255,255,.2);
+      border: none;
+      color: #fff;
+      border-radius: 50%;
+      font-size: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: #1e293b;
+      color: #fff;
+      padding: 12px 22px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      opacity: 0;
+      transition: all .25s;
+      pointer-events: none;
+      z-index: 998;
+      white-space: nowrap;
+      max-width: calc(100vw - 32px);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #toast.ok { background: var(--green); }
+    #toast.err { background: var(--red); }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">🧾</span>
+  <div>
+    <h1>Fis Takip</h1>
+    <small>Google Drive'a otomatik kayit</small>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('add')">📷 Fis Ekle</div>
+  <div class="tab" onclick="switchTab('list')">📊 Giderlerim</div>
+</div>
+
+<!-- ── ADD TAB ── -->
+<div class="section active" id="tab-add">
+
+  <div id="capture-area" onclick="document.getElementById('file-input').click()">
+    <div class="icon">📷</div>
+    <div class="title">Fis Fotografla</div>
+    <div class="hint">Dokun veya galeriden sec</div>
+  </div>
+  <input type="file" id="file-input" accept="image/*" capture="environment" />
+
+  <img id="preview-img" alt="onizleme" />
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Claude fisi okuyor...</p>
+  </div>
+
+  <div id="receipt-form">
+    <h3>Bilgileri Kontrol Et</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tarih</label>
+        <input type="text" id="f-tarih" placeholder="GG.AA.YYYY" />
+      </div>
+      <div class="form-group">
+        <label>Tutar (TL)</label>
+        <input type="text" id="f-toplam" placeholder="0.00" inputmode="decimal" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Magaza / Yer</label>
+      <input type="text" id="f-magaza" placeholder="Magaza adi" />
+    </div>
+    <div class="form-group">
+      <label>Kategori</label>
+      <select id="f-kategori">
+        <option>Market</option>
+        <option>Restoran/Kafe</option>
+        <option>Akaryakit</option>
+        <option>Eczane</option>
+        <option>Giyim</option>
+        <option>Elektronik</option>
+        <option>Ulasim</option>
+        <option>Eglence</option>
+        <option>Diger</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Not (opsiyonel)</label>
+      <input type="text" id="f-notlar" placeholder="Ek aciklama..." />
+    </div>
+    <button class="btn-save" id="btn-save" onclick="saveReceipt()">
+      Drive'a Kaydet
+    </button>
+    <button class="btn-reset" onclick="resetForm()">Yeni Fis</button>
+  </div>
+
+</div>
+
+<!-- ── LIST TAB ── -->
+<div class="section" id="tab-list">
+
+  <div class="total-card">
+    <div class="label">Toplam Harcama</div>
+    <div class="amount" id="total-amount">...</div>
+    <div class="count" id="total-count"></div>
+  </div>
+
+  <div class="list-header">
+    <h3>Son Fisler</h3>
+    <button class="btn-refresh" onclick="loadExpenses()">Yenile</button>
+  </div>
+
+  <div class="expense-list" id="expense-list">
+    <div class="empty-state">
+      <div class="icon">⏳</div>
+      <p>Yukleniyor...</p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Photo modal -->
+<div id="photo-modal" onclick="closePhoto()">
+  <button id="photo-modal-close" onclick="closePhoto()">✕</button>
+  <img id="photo-modal-img" src="" alt="fis" />
+</div>
+
+<div id="toast"></div>
+
+<script>
+  let capturedImage = null;
+
+  // ── Tabs ─────────────────────────────────────────────────────────────────
+  function switchTab(tab) {
+    ['add','list'].forEach((t, i) => {
+      document.querySelectorAll('.tab')[i].classList.toggle('active', t === tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+    if (tab === 'list') loadExpenses();
+  }
+
+  // ── Image capture ─────────────────────────────────────────────────────────
+  document.getElementById('file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const resized = await resizeImage(file, 1600, 2400, 0.88);
+    capturedImage = resized;
+    document.getElementById('preview-img').src = resized;
+    document.getElementById('preview-img').style.display = 'block';
+    document.getElementById('capture-area').style.display = 'none';
+    analyzeReceipt(resized);
+  });
+
+  function resizeImage(file, maxW, maxH, q) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > maxW || h > maxH) {
+            if (w/h > maxW/maxH) { h = Math.round(h*maxW/w); w = maxW; }
+            else { w = Math.round(w*maxH/h); h = maxH; }
+          }
+          const c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          c.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(c.toDataURL('image/jpeg', q));
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ── Analyze ───────────────────────────────────────────────────────────────
+  async function analyzeReceipt(imageData) {
+    document.getElementById('loading').style.display = 'block';
+    document.getElementById('receipt-form').style.display = 'none';
+    try {
+      const res = await fetch('/analyze', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({image: imageData})
+      });
+      const data = await res.json();
+      if (data.error) { showToast(data.error, 'err'); fillDefaults(); return; }
+      document.getElementById('f-tarih').value = data.tarih || today();
+      document.getElementById('f-magaza').value = data.magaza || '';
+      document.getElementById('f-toplam').value = data.toplam || '';
+      document.getElementById('f-notlar').value = data.notlar || '';
+      const sel = document.getElementById('f-kategori');
+      for (const o of sel.options) { if (o.value === data.kategori) { sel.value = o.value; break; } }
+      document.getElementById('receipt-form').style.display = 'block';
+    } catch {
+      showToast('Baglanti hatasi', 'err');
+      fillDefaults();
+    } finally {
+      document.getElementById('loading').style.display = 'none';
+    }
+  }
+
+  function fillDefaults() {
+    document.getElementById('f-tarih').value = today();
+    document.getElementById('receipt-form').style.display = 'block';
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  function today() {
+    const d = new Date();
+    return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear();
+  }
+
+  // ── Save ──────────────────────────────────────────────────────────────────
+  async function saveReceipt() {
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true; btn.textContent = 'Kaydediliyor...';
+    const receipt = {
+      tarih: document.getElementById('f-tarih').value,
+      magaza: document.getElementById('f-magaza').value,
+      toplam: document.getElementById('f-toplam').value,
+      kategori: document.getElementById('f-kategori').value,
+      notlar: document.getElementById('f-notlar').value,
+    };
+    try {
+      const res = await fetch('/save', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({receipt, image: capturedImage})
+      });
+      const data = await res.json();
+      if (data.success) {
+        showToast('Fis Drive\'a kaydedildi!', 'ok');
+        setTimeout(resetForm, 1600);
+      } else {
+        showToast(data.error || 'Kayit hatasi', 'err');
+      }
+    } catch { showToast('Baglanti hatasi', 'err'); }
+    finally { btn.disabled = false; btn.textContent = "Drive\'a Kaydet"; }
+  }
+
+  function resetForm() {
+    capturedImage = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('preview-img').style.display = 'none';
+    document.getElementById('capture-area').style.display = 'flex';
+    document.getElementById('receipt-form').style.display = 'none';
+    document.getElementById('loading').style.display = 'none';
+  }
+
+  // ── Expenses ──────────────────────────────────────────────────────────────
+  const CATS = {
+    'Market':        {icon:'🛒', bg:'#dcfce7'},
+    'Restoran/Kafe': {icon:'🍽️', bg:'#fef9c3'},
+    'Akaryakit':     {icon:'⛽', bg:'#fee2e2'},
+    'Eczane':        {icon:'💊', bg:'#f0fdf4'},
+    'Giyim':         {icon:'👗', bg:'#fdf4ff'},
+    'Elektronik':    {icon:'💻', bg:'#eff6ff'},
+    'Ulasim':        {icon:'🚌', bg:'#f0f9ff'},
+    'Eglence':       {icon:'🎬', bg:'#fff7ed'},
+    'Diger':         {icon:'📁', bg:'#f8fafc'},
+  };
+
+  async function loadExpenses() {
+    const list = document.getElementById('expense-list');
+    list.innerHTML = '<div class="empty-state"><div class="icon">⏳</div><p>Yukleniyor...</p></div>';
+    try {
+      const res = await fetch('/expenses');
+      const data = await res.json();
+      if (data.error) { list.innerHTML = `<div class="empty-state"><p>${data.error}</p></div>`; return; }
+
+      document.getElementById('total-amount').textContent =
+        '₺' + (data.total||0).toLocaleString('tr-TR', {minimumFractionDigits:2});
+      document.getElementById('total-count').textContent = data.items.length + ' kayit';
+
+      if (!data.items.length) {
+        list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>Henuz fis eklenmemis.</p></div>';
+        return;
+      }
+
+      list.innerHTML = data.items.map(item => {
+        const cat = CATS[item.kategori] || CATS['Diger'];
+        const amount = parseFloat(String(item.toplam).replace(',','.')) || 0;
+        const hasPhoto = item.foto && item.foto !== 'None' && item.foto !== '';
+        return `<div class="expense-item" onclick="${hasPhoto ? `openPhoto('${item.foto}')` : ''}">
+          <div class="cat-icon" style="background:${cat.bg}">${cat.icon}</div>
+          <div class="expense-info">
+            <div class="store">${item.magaza || 'Bilinmiyor'}</div>
+            <div class="meta">${item.tarih}  •  ${item.kategori || '-'}${item.notlar ? '  •  ' + item.notlar : ''}</div>
+          </div>
+          <div class="expense-amount">₺${amount.toLocaleString('tr-TR',{minimumFractionDigits:2})}</div>
+        </div>`;
+      }).join('');
+    } catch {
+      list.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Yuklenemedi</p></div>';
+    }
+  }
+
+  // ── Photo modal ───────────────────────────────────────────────────────────
+  function openPhoto(filename) {
+    document.getElementById('photo-modal-img').src = '/photo/' + filename;
+    document.getElementById('photo-modal').classList.add('open');
+  }
+  function closePhoto() {
+    document.getElementById('photo-modal').classList.remove('open');
+  }
+
+  // ── Toast ─────────────────────────────────────────────────────────────────
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'show ' + type;
+    setTimeout(() => { t.className = ''; }, 3000);
+  }
+</script>
+</body>
+</html>

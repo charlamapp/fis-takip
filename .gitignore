@@ -1,0 +1,8 @@
+.env
+token.json
+credentials.json
+.folder_id
+.sheet_id
+__pycache__/
+*.pyc
+.DS_Store
